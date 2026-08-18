@@ -7,6 +7,7 @@ import type { ExtractedInvoice } from './types'
 import { parseDeterministic } from './deterministic'
 import { EXTRACTION_MODEL, EXTRACTION_VERSION, llmAvailable, parseWithLLM } from './llm'
 import { cacheGet, cacheSet } from './cache'
+import { getSellerUnvan, learnSeller } from '../learning/sellerRegistry'
 
 // Önbellek anahtarı model + mantık sürümünü içerir → prompt değişince eski önbellek kullanılmaz
 const CACHE_MODEL = `${EXTRACTION_MODEL}|v${EXTRACTION_VERSION}`
@@ -19,7 +20,7 @@ export interface EngineCtx {
 
 export interface EngineResult {
     invoice: ExtractedInvoice
-    engine: 'llm' | 'cache' | 'deterministic'
+    engine: 'llm' | 'cache' | 'rule' | 'deterministic'
     fallbackReason?: string
 }
 
@@ -30,21 +31,38 @@ export async function extractInvoice(
     const useLLM = ctx.preferLLM ?? llmAvailable()
 
     if (useLLM) {
-        // Önbellek: aynı fatura daha önce çıkarıldıysa API'ye gitme (bedava) — DK-23
+        // 1) Önbellek: aynı fatura daha önce çıkarıldıysa API'ye gitme (bedava) — DK-23
         const cached = cacheGet(chunk.text, ctx.mukellefVknTckn, CACHE_MODEL)
         if (cached) return { invoice: cached, engine: 'cache' }
 
-        // LLM'i bir kez retry ile dene (geçici parse/ağ hatalarını kurtarır) → sonra deterministik yedek
+        // 2) Deterministik ön-çıkarım (bedava) + öğrenilen satıcı ünvanı (Faz 3, DK-30)
+        const det = parseDeterministic(chunk.text, chunk.lines, ctx)
+        const bilinenUnvan = det.saticiVknTckn ? getSellerUnvan(det.saticiVknTckn) : null
+        if (bilinenUnvan) {
+            det.saticiUnvan = bilinenUnvan
+            det.guven.saticiUnvan = 0.9
+        }
+
+        // 3) Kural yolu: bilinen satıcı + güvenilir temel alanlar → LLM'siz (bedava)
+        const guvenilir =
+            !!bilinenUnvan &&
+            (det.guven.faturaNo ?? 0) >= 0.75 &&
+            (det.guven.faturaTarihi ?? 0) >= 0.75 &&
+            det.matrah > 0 &&
+            Number.isFinite(det.kdv)
+        if (guvenilir) return { invoice: det, engine: 'rule' }
+
+        // 4) LLM (ve satıcıyı öğren) → hata olursa retry → deterministik yedek
         for (let deneme = 0; deneme < 2; deneme++) {
             try {
                 const invoice = await parseWithLLM(chunk.text, ctx)
+                learnSeller(invoice.saticiVknTckn, invoice.saticiUnvan) // öğren (yalnızca LLM)
                 cacheSet(chunk.text, ctx.mukellefVknTckn, CACHE_MODEL, invoice)
                 return { invoice, engine: 'llm' }
             } catch (err) {
                 if (deneme === 0) continue // ilk hatada tekrar dene
                 const reason = err instanceof Error ? err.message : 'bilinmeyen hata'
-                const invoice = parseDeterministic(chunk.text, chunk.lines, ctx)
-                return { invoice, engine: 'deterministic', fallbackReason: reason }
+                return { invoice: det, engine: 'deterministic', fallbackReason: reason }
             }
         }
     }

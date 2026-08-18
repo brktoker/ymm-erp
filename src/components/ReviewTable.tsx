@@ -7,6 +7,7 @@
 import { REVIEW_COLS } from '@/lib/columns'
 import type { KdvListRow } from '@/lib/extraction/types'
 import { CurrencyCell } from './CurrencyCell'
+import { DateCell } from './DateCell'
 
 interface ReviewTableProps {
     rows: KdvListRow[]
@@ -51,6 +52,12 @@ export function ReviewTable({ rows, onEdit, onApprove, flaggedOnly = false }: Re
                                                 <CurrencyCell
                                                     value={(v as number | null) ?? null}
                                                     onCommit={(nv) => onEdit(index, c.key, nv)}
+                                                    className={`${c.w} ${CELL}`}
+                                                />
+                                            ) : c.kind === 'date' ? (
+                                                <DateCell
+                                                    value={String(v ?? '')}
+                                                    onCommit={(iso) => onEdit(index, c.key, iso)}
                                                     className={`${c.w} ${CELL}`}
                                                 />
                                             ) : (

@@ -17,6 +17,7 @@ type Meta = {
     llmKullanildi: boolean
     llmCount: number
     cacheCount: number
+    ruleCount: number
     bayrakli: number
 }
 
@@ -151,6 +152,7 @@ export default function Home() {
                     {meta.ayiklananSayi > 0 && <span className="text-orange-600"><b>{meta.ayiklananSayi}</b> ayıklandı</span>}
                     <span>Motor: <b>{meta.llmKullanildi ? `LLM (${meta.llmCount})` : 'deterministik'}</b></span>
                     {meta.cacheCount > 0 && <span className="text-green-600" title="API'ye gitmedi, bedava">♻ {meta.cacheCount} önbellekten</span>}
+                    {meta.ruleCount > 0 && <span className="text-green-600" title="Öğrenilen satıcı kuralıyla, LLM'siz, bedava">📐 {meta.ruleCount} kuralla</span>}
                     {/* Gözden geçir sayacı tıklanabilir → sadece bayraklı satırları göster (DK-21) */}
                     <button
                         type="button"

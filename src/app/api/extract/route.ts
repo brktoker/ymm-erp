@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
             llmKullanildi: llmAvailable(),
             llmCount: results.filter((r) => r.engine === 'llm').length,
             cacheCount: results.filter((r) => r.engine === 'cache').length,
+            ruleCount: results.filter((r) => r.engine === 'rule').length,
             bayrakli: dahilRows.filter((r) => r.bayraklar.length > 0).length,
         },
     })

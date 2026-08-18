@@ -177,12 +177,31 @@ bu util'den beslenir — kopyalanmaz (ANA KURAL 2). İleride ayarlardan para bir
   export düzeltilmiş veriyi kullanır.
 - **Kaynak:** kullanıcı kararı.
 
+## DK-30 — Faz 3 öğrenme v1: Satıcı Kayıt Defteri + kural yolu (token↓)
+Bilinen satıcının faturası LLM'siz (bedava) çözülür:
+- **Öğrenme:** LLM bir satıcıyı başarıyla okuduğunda `VKN→ünvan` kaydedilir
+  (`src/lib/learning/sellerRegistry.ts`, `.cache/seller-registry.json`, git dışı).
+  Yalnızca **LLM** çıkarımından öğrenilir (yanlış veri öğrenilmesin).
+- **Resolver zinciri (engine.ts):** 1) önbellek → 2) deterministik ön-çıkarım + kayıttan ünvan →
+  3) **kural yolu:** satıcı biliniyor VE deterministik faturaNo+tarih+matrah+kdv güvenli ise
+  → LLM'siz döner (`engine: 'rule'`). 4) değilse LLM (+öğren) → hata olursa deterministik yedek.
+- **Tasarruf:** bir müşterinin **düzenli tedarikçileri** ilk aydan sonra çoğunlukla `rule`
+  yoluyla bedava çözülür; sadece yeni satıcılar LLM'e gider.
+- **Denge (dürüst):** kural yolunda **mal cinsi (kalemler)** deterministik (zayıf) → düşük güven
+  bayrağıyla review'a düşer; kullanıcı kontrol/onaylar. Kritik alanlar (VKN, ünvan, faturaNo,
+  tarih, matrah, kdv) güvenli. Tam şablon-kural öğrenimi (kalem tablosu dahil) = Faz 3 v2.
+- **Doğrulandı:** ATLAS AGRO öğrenildikten sonra aynı satıcının başka faturası `rule` ile
+  (LLM çağrılmadan) doğru çözüldü.
+- **Arayüz:** meta'da "📐 N kuralla" göstergesi.
+- **Kaynak:** Faz 3 planı (maliyet↓ + doğruluk↑).
+
 ## DK-29 — Excel tarih kolonu: gerçek tarih + GG.AA.YYYY (26.10.2025)
 "Alış Faturasının Tarihi" kolonu Excel'de **gerçek tarih değeri** olarak yazılır ve
 **`dd.mm.yyyy`** biçimiyle gösterilir (ör. 26.10.2025). İç temsil ISO (YYYY-MM-DD) kalır;
 biçimlendirme tek kaynaktan (`src/lib/date.ts` → `isoToDate`, `EXCEL_DATE_FMT`, `formatDateTr`).
-Saat kayması yok (`Date.UTC`). Sadece export biçimi değişti — önbellek/çıkarım etkilenmez.
-- **Kaynak:** kullanıcı kararı (tarih formatı GG.AA.YYYY).
+Saat kayması yok (`Date.UTC`). **Tabloda da** GG.AA.YYYY gösterilir (`DateCell`: tıkla-düzenle,
+"23.01.2025" veya ISO kabul, içeride ISO kalır). Sadece gösterim/export biçimi — çıkarım etkilenmez.
+- **Kaynak:** kullanıcı kararı (tarih formatı GG.AA.YYYY, hem Excel hem tablo).
 
 ## DK-28 — LLM'den sadece top-N kalem iste (çok kalemli faturada taşmayı önle)
 > N = `TOP_KALEM` (config, şu an 2). Aşağıdaki "3" örneği ilk teşhis anındandır.

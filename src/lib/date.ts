@@ -16,3 +16,15 @@ export function formatDateTr(iso: string): string {
     const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/)
     return m ? `${m[3]}.${m[2]}.${m[1]}` : iso
 }
+
+// Kullanıcı girişini ISO'ya çevirir — hem "26.10.2025" (TR) hem "2025-10-26" (ISO) kabul edilir
+export function parseDateInput(input: string): string | null {
+    const s = input.trim()
+    // ISO: YYYY-MM-DD
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`
+    // TR: GG.AA.YYYY (. / veya - ayraç)
+    m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/)
+    if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+    return null
+}

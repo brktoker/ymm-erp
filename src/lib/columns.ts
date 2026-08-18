@@ -3,7 +3,7 @@
 
 import type { KdvListRow } from './extraction/types'
 
-export type ColKind = 'index' | 'text' | 'currency'
+export type ColKind = 'index' | 'text' | 'currency' | 'date'
 
 export interface ReviewCol {
     key: keyof KdvListRow
@@ -16,7 +16,7 @@ export interface ReviewCol {
 
 export const REVIEW_COLS: ReviewCol[] = [
     { key: 'siraNo', label: 'Sıra', excelLabel: 'Sıra No', kind: 'index', w: 'w-12', excelW: 8 },
-    { key: 'tarih', label: 'Tarih', excelLabel: 'Alış Faturasının Tarihi', kind: 'text', w: 'w-28', excelW: 14 },
+    { key: 'tarih', label: 'Tarih', excelLabel: 'Alış Faturasının Tarihi', kind: 'date', w: 'w-28', excelW: 14 },
     { key: 'seri', label: 'Seri', excelLabel: 'Alış Faturasının Serisi', kind: 'text', w: 'w-16', excelW: 10 },
     { key: 'faturaNo', label: 'Fatura No', excelLabel: "Alış Faturasının Sıra No'su", kind: 'text', w: 'w-40', excelW: 20 },
     { key: 'saticiUnvan', label: 'Satıcı Ünvan', excelLabel: 'Satıcının Adı-Soyadı / Ünvanı', kind: 'text', w: 'w-64', excelW: 30 },
