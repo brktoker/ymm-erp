@@ -61,7 +61,9 @@ Bu "demonstrasyonla öğrenme"dir: denetlenebilir, geri alınabilir, versiyonlan
 - **Next.js (App Router) + TypeScript** — UI + API route'lar
 - **Tailwind + cva + `cn()`** — config-driven className yapısı
 - **PDF metin:** `pdfjs-dist` / `unpdf`; **XML:** `fast-xml-parser`
-- **Çıkarım motoru:** LLM (sabit JSON şema + şema validasyonu) — Faz 1 ana yolu
+- **Çıkarım motoru:** Anthropic SDK + `messages.parse()` (structured output, Zod şeması) —
+  şema-dışı çıktı SDK'da engellenir. Varsayılan model `claude-sonnet-5` (env `CSA_EXTRACTION_MODEL`
+  ile değiştirilebilir), `effort: 'low'`. Anahtar (`ANTHROPIC_API_KEY`) yoksa deterministik yedeğe düşer.
 - **Excel:** `exceljs` (şablonu taban alıp birebir yazar, TOPLAM formülü)
 - **OCR (Faz 3):** taranmış fatura / yazarkasa fişi
 

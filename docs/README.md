@@ -1,10 +1,16 @@
 # KDV İade Listesi Otomasyonu — Ana Doküman
 
-> **ANA KURAL:** Bu klasör projenin tek doğruluk kaynağıdır. Yapılan her işlemde
-> **doğruluk payı olan** (bir alanın nasıl okunduğu, bir hesabın nasıl yapıldığı,
-> bir faturanın nasıl yorumlandığı) her karar buraya işlenir. Yeni bir fatura tipi,
-> yeni bir kural veya yeni bir istisna geldiğinde **önce bu dokümana bakılır**,
-> sonra koda geçilir. Kod ile bu doküman çeliştiğinde doküman güncellenir.
+> **ANA KURAL 1 — Doküman doğruluk kaynağı:** Bu klasör projenin tek doğruluk kaynağıdır.
+> Yapılan her işlemde **doğruluk payı olan** (bir alanın nasıl okunduğu, bir hesabın nasıl
+> yapıldığı, bir faturanın nasıl yorumlandığı) her karar buraya işlenir. Yeni bir fatura tipi,
+> kural veya istisna geldiğinde **önce bu dokümana bakılır**, sonra koda geçilir. Kod ile
+> doküman çeliştiğinde doküman güncellenir.
+>
+> **ANA KURAL 2 — Ölçeklenebilir, tekrarsız kod:** Tekrarlayan kod bloğuna **asla** izin
+> verilmez. UI **dinamik/yeniden-kullanılabilir component** yapısında kurulur; ortak mantık
+> (para birimi/fiyat gösterimi, kolon tanımları, biçimlendirme vb.) **`utils`/`config`/`components`**
+> dosyalarından import edilir, kopyalanmaz. Her iş profesyonel bir yazılımcı gibi incelenir,
+> ölçeklenebilirlik gözetilerek sonuçlandırılır.
 
 ## Amaç
 
@@ -29,7 +35,17 @@ müşteri faturalarının (çoğunlukla PDF, bazen UBL-XML) toplu yüklenmesiyle
 ## Faz durumu
 
 - **Faz 0 — İspat:** ✅ Bitti (3 fatura tipi doğru satıra döndü)
-- **Faz 1 — Uçtan-uca MVP (LLM-öncelikli):** 🔨 Devam ediyor
-- Faz 2 — Öğrenen kural katmanı: ⏳
-- Faz 3 — Ölçek + yönetim: ⏳
-- Faz 4 — Modüller: ⏳
+- **Faz 1 — Uçtan-uca MVP (LLM-öncelikli):** ✅ Bitti — gerçek koşu: 122 faturanın **120'si otomatik+temiz**, 2'si review (Sonnet 5)
+  - ✅ Next.js + Tailwind iskelet, çekirdek pipeline (PDF→bölme→çıkarım→türetme→xlsx)
+  - ✅ Headless ispat: `scripts/prove.mts` — ENES ÇOBAN birebir; FATURALAR.pdf 122 fatura
+  - ✅ Excel çıktı birebir (başlıklar + TOPLAM formülü); tevkifat K11/K12/K13 doğru
+  - ✅ LLM çıkarım motoru (`messages.parse` + Zod, claude-opus-5) — kod hazır, anahtarla çalışır
+  - ✅ Web arayüzü: `/api/extract` + `/api/export` + düzenlenebilir review tablosu (bayraklı satır) + Excel indirme
+
+**Çalıştırma:** `npm run dev` (varsayılan :3000). Uçtan uca akış: PDF yükle → mükellef VKN + dönem →
+"Faturaları Çıkar" → sarı bayraklı satırları düzelt → "Excel İndir". LLM için `.env.local`'e
+`ANTHROPIC_API_KEY` ekle (yoksa deterministik motor çalışır).
+- **Faz 1.5 — Çıktı + review iyileştirmeleri:** ✅ TOPLAM kaldırıldı, dönem-bazlı sekme/dosya, hedef dönem ayıklama, indirme seçeneği, **15 kolon tam**, **TL para birimi** (config-driven, ayarlanabilir), **"gözden geçir" filtresi**, elle düzeltme, yeniden-kullanılabilir component yapısı (ANA KURAL 2)
+- Faz 2 — Platform (auth + müşteri portalı + YMM dashboard): ⏳ (sıradaki)
+- Faz 3 — Öğrenen kural katmanı: ⏳
+- Faz 4 — Ölçek + modüller: ⏳

@@ -37,7 +37,7 @@ interface ExtractedInvoice {
 | 4 | Alış Faturasının Sıra No'su | `faturaNo` | Fatura numarası |
 | 5 | Satıcının Adı-Soyadı / Ünvanı | `saticiUnvan` | Kesen taraf |
 | 6 | Satıcının VKN / TCKN | `saticiVknTckn` | Metin, checksum doğrulamalı |
-| 7 | Mal/Hizmetin Cinsi | `kalemler` | **KDV dahil tutara göre en yüksek 3 kalemin adı**, virgülle |
+| 7 | Mal/Hizmetin Cinsi | `kalemler` | **KDV dahil tutara göre en yüksek N kalemin adı** (N=`TOP_KALEM`, şu an 2), virgülle |
 | 8 | Mal/Hizmetin Miktarı | `kalemler` | Aynı 3 kalemin miktarı, aynı sırada, virgülle |
 | 9 | KDV Hariç Tutar | `matrah` | Faturadan doğrudan (toplama yapılmaz) |
 | 10 | KDV'si | `kdv` | Faturadan doğrudan, sadece KDV |
