@@ -1,25 +1,26 @@
-// Satıcı Kayıt Defteri (Faz 3 öğrenme, DK-30) — VKN → ünvan.
-// LLM bir satıcıyı başarıyla okuduğunda ünvanı öğrenilir; deterministik motor bunu kullanır
-// → bilinen satıcının sonraki faturaları LLM'siz çözülebilir (token düşer).
-// DB YOK: .cache/seller-registry.json (git dışı). Best-effort; hata sessiz geçilir.
+// Satıcı Kayıt Defteri (Faz 3 v3, DK-32) — VKN → { ünvan, deterministik güvenli mi }.
+// "detGuvenli": LLM ile deterministik çıkarım bu satıcının şablonunda EŞLEŞTİ mi?
+// Eşleştiyse (doğrulandıysa) o satıcının sonraki faturaları LLM'siz (kural yolu) çözülür → token↓.
+// DB YOK: .cache/seller-registry.json (git dışı). Best-effort.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 const FILE = join(process.cwd(), '.cache', 'seller-registry.json')
 
-interface Entry {
+export interface SellerEntry {
     unvan: string
-    gorulme: number // kaç kez öğrenildi/güncellendi
-    sonGuncelleme: string // ISO
+    detGuvenli: boolean // deterministik motor bu şablonda LLM ile eşleşti (doğrulandı)
+    gorulme: number
+    sonGuncelleme: string
 }
 
-let map: Record<string, Entry> | null = null
+let map: Record<string, SellerEntry> | null = null
 
-function load(): Record<string, Entry> {
+function load(): Record<string, SellerEntry> {
     if (map) return map
     try {
-        map = existsSync(FILE) ? (JSON.parse(readFileSync(FILE, 'utf8')) as Record<string, Entry>) : {}
+        map = existsSync(FILE) ? (JSON.parse(readFileSync(FILE, 'utf8')) as Record<string, SellerEntry>) : {}
     } catch {
         map = {}
     }
@@ -35,18 +36,24 @@ function persist(): void {
     }
 }
 
-export function getSellerUnvan(vknTckn: string): string | null {
+export function getSellerEntry(vknTckn: string): SellerEntry | null {
     if (!vknTckn) return null
-    return load()[vknTckn]?.unvan ?? null
+    return load()[vknTckn] ?? null
 }
 
-// Yalnızca güvenilir kaynaktan (LLM) çağrılır → yanlış veri öğrenilmesin
-export function learnSeller(vknTckn: string, unvan: string): void {
+export function getSellerUnvan(vknTckn: string): string | null {
+    return getSellerEntry(vknTckn)?.unvan ?? null
+}
+
+// Yalnızca LLM çıkarımından öğrenilir. detGuvenli = deterministik ile eşleşme sonucudur.
+export function learnSeller(vknTckn: string, unvan: string, detGuvenli: boolean): void {
     if (!/^\d{10,11}$/.test(vknTckn) || !unvan.trim()) return
     const m = load()
+    const prev = m[vknTckn]
     m[vknTckn] = {
         unvan: unvan.trim(),
-        gorulme: (m[vknTckn]?.gorulme ?? 0) + 1,
+        detGuvenli,
+        gorulme: (prev?.gorulme ?? 0) + 1,
         sonGuncelleme: new Date().toISOString(),
     }
     persist()

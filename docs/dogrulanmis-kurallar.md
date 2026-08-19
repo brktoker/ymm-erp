@@ -177,6 +177,39 @@ bu util'den beslenir — kopyalanmaz (ANA KURAL 2). İleride ayarlardan para bir
   export düzeltilmiş veriyi kullanır.
 - **Kaynak:** kullanıcı kararı.
 
+## DK-33 — Çok-sayfalı fatura: kimliğe göre bölme (ETTN/Fatura No)
+Fatura 2-3 sayfa olabilir (footer/banka/notlar taşar). Bölme artık **fatura kimliğine** göre
+(`faturaKimlik`: ETTN öncelik → Fatura No): aynı kimlik = aynı fatura (başlık tekrarı),
+kimliksiz sayfa = devam sayfası → mevcut faturaya eklenir; farklı kimlik = yeni fatura.
+- **Ölçüm (FATURALAR):** 141 sayfa → 123 fatura, 18 devam sayfası doğru birleşti (hepsi "SAYIN"sız footer).
+- **Kaynak:** kullanıcı (faturalar tek sayfa değil).
+
+## DK-32 — Faz 3 v3: "Doğrulanmış satıcı" reçetesi (hem ucuz hem doğru)
+Satıcı şablonları sabit olduğundan, deterministiğin hangi satıcıda güvenilir olduğunu **öğreniriz**:
+- **Doğrulama:** LLM bir satıcıyı okurken, aynı fatura deterministik motorla da okunur ve
+  **karşılaştırılır** (`deterministikEslesir`: fatura no eşit + matrah/kdv %1 yakın + mal cinsi top-N
+  ad içeriyor). Eşleşirse satıcı **`detGuvenli=true`** işaretlenir (kayıt defterine).
+- **Uygulama:** doğrulanmış satıcının sonraki faturaları **kural yolu** ile (LLM'siz, bedava) çözülür;
+  bu faturada da temel alanlar + temiz mal cinsi doğrulanır (şablon değişmişse LLM'e düşer).
+- **Doğrulanmamış satıcı** (deterministik LLM ile eşleşmeyen, ör. FKE) → **her zaman LLM** (bozuk çıktı yok).
+- **Güvenli:** kural yolu yalnızca kanıtlanmış satıcılarda; sessiz yanlış olmaz.
+- **Test:** karşılaştırma 4 senaryoda doğru (eşleşme/tutar farkı/bozuk mal cinsi/no farkı).
+- **Sonraki (v3 v2):** standart-dışı etiketli satıcılar için özel alan-anchor reçetesi (şimdilik onlar LLM'de).
+- **Kaynak:** kullanıcı içgörüsü (satıcı şablonları sabit → nereye bakacağımız belli).
+
+## DK-31 — Faz 3 v2: kural yolu yalnızca TEMİZ mal cinsi varsa (hem ucuz hem temiz)
+DK-30'daki denge sorunu (kural yolunda mal cinsi zayıf → 55 satır bayraklı) çözüldü:
+- **Kalem parser'ı sağlamlaştırıldı** (`extractKalemler`): tablo bölgesi bulunur, çok-satırlı
+  kalemler birleştirilir, ad `:`/`(`'den kesilir, başlık satırları atlanır. **Kalite skoru** döner.
+- **Ad temizlik denetimi** (`adTemizMi`): başlık kelimesi (Tutarı/Oranı/Mal Hizmet...) veya endeks
+  gürültüsü kaçmışsa "kirli" → kalite düşer.
+- **Kural yolu kapısına** `guven.kalemler >= 0.75` eklendi: mal cinsi temizse kural (bedava, bayraksız),
+  değilse **LLM** (temiz). Böylece **hiçbir yerde bozuk mal cinsi çıkmaz**.
+- **Ölçüm (FATURALAR):** 41/122 temiz-ayrıştırılabilir → kural (bedava). OSB/ADE/HMF temiz;
+  FKE (bozuk deterministik) doğru şekilde LLM'e düşüyor.
+- Sonuç: token tasarrufu (kural yolu) + temiz çıktı + review yükü düşük.
+- **Kaynak:** kullanıcı geri bildirimi (55 gözden geçir) + Faz 3 v2 kararı.
+
 ## DK-30 — Faz 3 öğrenme v1: Satıcı Kayıt Defteri + kural yolu (token↓)
 Bilinen satıcının faturası LLM'siz (bedava) çözülür:
 - **Öğrenme:** LLM bir satıcıyı başarıyla okuduğunda `VKN→ünvan` kaydedilir

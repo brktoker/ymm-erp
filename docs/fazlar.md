@@ -70,6 +70,17 @@ tasarlandı → Faz 2 bunların ÜSTÜNE oturur, yeniden yazılmaz (ANA KURAL 2)
 ## Faz 2 — Platform (auth + müşteri portalı + YMM dashboard) ⏳
 **Amaç:** Tek-kullanıcı araçtan çok-kiracılı (multi-tenant) ürüne geçiş.
 
+> **GEÇİCİ DURUM (kullanıcı kararı):** Supabase Auth **ertelendi** ("başka zaman"). Yerine
+> **geçici tek-parola girişi** kondu: `/giris` (parola) → cookie → `/panel` korumalı; fatura aracı
+> `/panel` içine taşındı; `/` → `/panel`'e yönlenir. Parola `.env.local` → `PANEL_PAROLA` (varsayılan
+> `ymm2025`, değiştir). Supabase projesi/tabloları bulutta duruyor (silinmedi); auth/db kodu geri alındı.
+> `middleware.ts` basit cookie guard'a döndü. Gerçek auth (Supabase) sonraki turda geri gelecek.
+
+> **YIĞIN KARARI (kullanıcı): Vercel + Supabase** — basitlik için (sunucu yönetimi yok).
+> DB+Auth+Storage = Supabase (`@supabase/supabase-js`, Prisma YOK); deploy = Vercel (`git push`);
+> KVKK için Supabase bölgesi **EU (Frankfurt)**. 300 sn serverless sınırı: tipik hacim altında,
+> büyük yüklemede chunk gerekebilir. (Kendi-sunucu/Prisma yolu denendi, sadelik için bırakıldı.)
+
 **2.1 Kimlik doğrulama & roller**
 - [ ] Giriş sistemi (özel, dışarı kapalı)
 - [ ] Roller: YMM (mali müşavir) / Müşteri

@@ -11,19 +11,28 @@ export interface InvoiceChunk {
     lines: string[] // satır dizisi (yapısal alanlar için)
 }
 
-// Yeni fatura başlangıcını belirten işaretler (herhangi biri = yeni belge)
-const BASLANGIC = /(Özelleştirme\s*No|Senaryo\s*:|Fatura\s*(No|Numaras[ıi])\s*:)/i
-
 export async function extractPages(buf: Uint8Array): Promise<string[]> {
     const pdf = await getDocumentProxy(buf)
     const { text } = await extractText(pdf, { mergePages: false })
     return text
 }
 
-// Sayfaları faturalara böler. Bir sayfada başlangıç işareti varsa yeni fatura sayılır.
+// Bir sayfadaki fatura tekil kimliği (ETTN öncelik → Fatura No). Çok-sayfalı faturaları
+// doğru gruplamak için: aynı kimlik = aynı fatura (başlık tekrar etmiş), kimlik yok = devam sayfası.
+export function faturaKimlik(text: string): string | null {
+    const ettn = text.match(
+        /ETTN\s*:?\s*([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/,
+    )
+    if (ettn) return 'ettn:' + ettn[1].toLowerCase()
+    const no = text.match(/Fatura\s*(?:No|Numaras[ıi])\s*:?\s*([A-Za-z]{2,5}\d{8,}|[A-Z0-9]{10,})/i)
+    if (no) return 'no:' + no[1].toUpperCase()
+    return null
+}
+
+// Sayfaları faturalara böler — fatura kimliğine göre (çok-sayfalı faturaları birleştirir).
 export function splitInvoices(pages: string[]): InvoiceChunk[] {
     const chunks: InvoiceChunk[] = []
-    let cur: { start: number; texts: string[] } | null = null
+    let cur: { start: number; texts: string[]; kimlik: string | null } | null = null
 
     const flush = (endPage: number) => {
         if (!cur) return
@@ -38,14 +47,17 @@ export function splitInvoices(pages: string[]): InvoiceChunk[] {
     }
 
     pages.forEach((pageText, i) => {
-        const yeniFatura = BASLANGIC.test(pageText)
-        if (yeniFatura) {
-            if (cur) flush(i - 1)
-            cur = { start: i, texts: [pageText] }
-        } else if (cur) {
-            cur.texts.push(pageText) // önceki faturanın devam sayfası
+        const k = faturaKimlik(pageText)
+        if (!cur) {
+            cur = { start: i, texts: [pageText], kimlik: k }
+        } else if (k && cur.kimlik && k !== cur.kimlik) {
+            // Farklı fatura kimliği → yeni fatura
+            flush(i - 1)
+            cur = { start: i, texts: [pageText], kimlik: k }
         } else {
-            cur = { start: i, texts: [pageText] }
+            // Aynı kimlik (başlık tekrarı) veya kimliksiz (devam sayfası) → mevcut faturaya ekle
+            cur.texts.push(pageText)
+            if (!cur.kimlik && k) cur.kimlik = k
         }
     })
     if (cur) flush(pages.length - 1)
